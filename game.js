@@ -328,28 +328,27 @@ function playPop(erase) {
   osc.stop(t + 0.1);
 }
 
-// 야옹 — 기본음 + 배음, 주파수가 올라갔다 내려오는 활강
-function playMeow() {
+// 딩동 — 종소리처럼 감쇠하는 2음 차임 (E5 → C5)
+function playChime() {
   const ctx = getAudio();
   if (!ctx) return;
   const t = ctx.currentTime;
-  const master = ctx.createGain();
-  master.gain.setValueAtTime(0.0001, t);
-  master.gain.exponentialRampToValueAtTime(0.28, t + 0.06);
-  master.gain.setValueAtTime(0.28, t + 0.3);
-  master.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-  master.connect(ctx.destination);
-  for (const [mult, vol, type] of [[1, 1, 'sawtooth'], [2, 0.3, 'triangle']]) {
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    g.gain.value = vol;
-    osc.type = type;
-    osc.frequency.setValueAtTime(400 * mult, t);
-    osc.frequency.linearRampToValueAtTime(680 * mult, t + 0.18);
-    osc.frequency.linearRampToValueAtTime(320 * mult, t + 0.55);
-    osc.connect(g).connect(master);
-    osc.start(t);
-    osc.stop(t + 0.6);
+  const notes = [
+    { freq: 659.25, start: t, dur: 0.7 },        // 딩 (E5)
+    { freq: 523.25, start: t + 0.28, dur: 0.9 }, // 동 (C5)
+  ];
+  for (const { freq, start, dur } of notes) {
+    for (const [mult, vol] of [[1, 0.25], [2, 0.08], [3, 0.03]]) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq * mult;
+      gain.gain.setValueAtTime(vol, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur);
+    }
   }
 }
 
@@ -507,7 +506,7 @@ function doubleClick(r, c) {
   if (isDiamond(r, c)) {
     cell.revealed = true;
     cell.mark = 'none';
-    playMeow();
+    playChime();
     autoMarkAround(r, c);
     render();
     if (board.diamondCols.every((col, row) => cells[row][col].revealed)) {
