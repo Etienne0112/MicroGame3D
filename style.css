@@ -47,6 +47,39 @@ h1 {
   background: #aab4c8;
 }
 
+/* 레벨 클리어 축하 배너 — 보드를 가리지 않고 상단 메뉴 아래에 표시 */
+#banner {
+  margin-top: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #f9c74f, #f8961e);
+  color: #2b2d42;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-weight: 700;
+}
+
+#banner.hidden {
+  display: none;
+}
+
+#banner-btn {
+  background: #2b2d42;
+  color: #f9c74f;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#banner-btn:hover {
+  background: #3d405b;
+}
+
 main {
   display: flex;
   flex-direction: column;

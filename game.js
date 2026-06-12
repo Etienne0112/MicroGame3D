@@ -35,6 +35,9 @@ const boardEl = document.getElementById('board');
 const levelEl = document.getElementById('level-display');
 const livesEl = document.getElementById('lives-display');
 const overlayEl = document.getElementById('overlay');
+const bannerEl = document.getElementById('banner');
+const bannerMsgEl = document.getElementById('banner-msg');
+const bannerBtnEl = document.getElementById('banner-btn');
 const overlayTitleEl = document.getElementById('overlay-title');
 const overlayMsgEl = document.getElementById('overlay-message');
 const overlayBtnEl = document.getElementById('overlay-btn');
@@ -289,6 +292,7 @@ function resetRound() {
   locked = false;
   flashing = null;
   hideOverlay();
+  bannerEl.classList.add('hidden');
   buildBoard();
   render();
 }
@@ -583,15 +587,19 @@ function onMistake(r, c) {
   }, 800);
 }
 
+// 클리어 축하는 보드를 가리지 않도록 상단 배너로 표시한다
 function onLevelClear() {
   locked = true;
   playFanfare();
-  showOverlay('🎉 Level Clear!', `고양이 ${size}마리를 모두 찾았어요!`, 'Next Level', () => {
-    level++;
-    size = Math.min(MIN_SIZE + level - 1, MAX_SIZE);
-    newBoard(); // newBoard가 새 레벨 + 새 판을 저장한다
-  });
+  bannerMsgEl.textContent = `🎉 고양이 ${size}마리를 모두 찾았어요!`;
+  bannerEl.classList.remove('hidden');
 }
+
+bannerBtnEl.addEventListener('click', () => {
+  level++;
+  size = Math.min(MIN_SIZE + level - 1, MAX_SIZE);
+  newBoard(); // newBoard가 새 레벨 + 새 판을 저장한다
+});
 
 // ---------- 렌더링 ----------
 
