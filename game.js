@@ -293,6 +293,86 @@ function resetRound() {
   render();
 }
 
+// ---------- 효과음 (Web Audio 합성 — 외부 파일 불필요) ----------
+
+let audioCtx = null;
+
+function getAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) audioCtx = new AC();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// iOS 등은 사용자 제스처 안에서만 오디오를 시작할 수 있다.
+// 클릭 처리(setTimeout)는 제스처 컨텍스트가 아니므로 첫 입력에서 미리 풀어둔다.
+document.addEventListener('mousedown', getAudio, { once: true });
+document.addEventListener('touchstart', getAudio, { once: true });
+
+// 뽁 — 물방울 터지는 소리 (마킹: 높은 음, 해제: 낮은 음, 피치 약간 랜덤)
+function playPop(erase) {
+  const ctx = getAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const base = (erase ? 280 : 480) * (0.9 + Math.random() * 0.2);
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(base, t);
+  osc.frequency.exponentialRampToValueAtTime(base * 2.3, t + 0.06);
+  gain.gain.setValueAtTime(0.25, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.1);
+}
+
+// 야옹 — 기본음 + 배음, 주파수가 올라갔다 내려오는 활강
+function playMeow() {
+  const ctx = getAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, t);
+  master.gain.exponentialRampToValueAtTime(0.28, t + 0.06);
+  master.gain.setValueAtTime(0.28, t + 0.3);
+  master.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+  master.connect(ctx.destination);
+  for (const [mult, vol, type] of [[1, 1, 'sawtooth'], [2, 0.3, 'triangle']]) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    g.gain.value = vol;
+    osc.type = type;
+    osc.frequency.setValueAtTime(400 * mult, t);
+    osc.frequency.linearRampToValueAtTime(680 * mult, t + 0.18);
+    osc.frequency.linearRampToValueAtTime(320 * mult, t + 0.55);
+    osc.connect(g).connect(master);
+    osc.start(t);
+    osc.stop(t + 0.6);
+  }
+}
+
+// 경고 — 낮은 사각파 두 번
+function playWarning() {
+  const ctx = getAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  for (let i = 0; i < 2; i++) {
+    const start = t + i * 0.17;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(220, start);
+    osc.frequency.linearRampToValueAtTime(150, start + 0.13);
+    gain.gain.setValueAtTime(0.15, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.15);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.16);
+  }
+}
+
 // ---------- 입력 ----------
 
 function isDiamond(r, c) {
@@ -359,6 +439,7 @@ function applyDragMark(r, c) {
   if (cell.revealed || cell.mark === 'wrong') return; // 예외: 공개된 다이아몬드, 오답 마킹
   if (cell.mark !== drag.mode) {
     cell.mark = drag.mode;
+    playPop(drag.mode === 'none');
     render();
   }
 }
@@ -414,6 +495,7 @@ function singleClick(r, c) {
   const cell = cells[r][c];
   if (cell.revealed || cell.mark === 'wrong') return;
   cell.mark = cell.mark === 'paw' ? 'none' : 'paw';
+  playPop(cell.mark === 'none');
   render();
 }
 
@@ -425,6 +507,7 @@ function doubleClick(r, c) {
   if (isDiamond(r, c)) {
     cell.revealed = true;
     cell.mark = 'none';
+    playMeow();
     autoMarkAround(r, c);
     render();
     if (board.diamondCols.every((col, row) => cells[row][col].revealed)) {
@@ -457,6 +540,7 @@ function onMistake(r, c) {
   mistakes++;
   locked = true;
   flashing = { r, c };
+  playWarning();
   render();
   boardEl.classList.add('shake');
   setTimeout(() => {
