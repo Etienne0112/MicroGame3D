@@ -139,9 +139,42 @@ main {
   text-shadow: 0 0 4px rgba(217, 4, 41, 0.5);
 }
 
-.hint {
-  margin-top: 12px;
+/* 조작 설명 박스 */
+.help {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.help-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #1a1b2e;
+  border: 1px solid #3d405b;
+  border-radius: 10px;
+  padding: 8px 14px;
   font-size: 0.9rem;
+  color: #cfd6e4;
+}
+
+.help-box strong {
+  background: #8d99ae;
+  color: #1a1b2e;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}
+
+/* 고양이 배치 규칙 안내 */
+.rules {
+  margin: 10px 0 0;
+  max-width: min(90vw, 560px);
+  text-align: center;
+  font-size: 0.88rem;
+  line-height: 1.5;
   color: #8d99ae;
 }
 
