@@ -352,6 +352,34 @@ function playChime() {
   }
 }
 
+// 팡파레 — 상승 아르페지오 후 화음 (레벨 클리어).
+// 마지막 고양이의 딩동 소리와 겹치지 않게 살짝 늦게 시작한다
+function playFanfare() {
+  const ctx = getAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime + 0.3;
+  const C5 = 523.25, E5 = 659.25, G5 = 783.99, C6 = 1046.5;
+  const note = (freq, start, dur, vol) => {
+    for (const [mult, v, type] of [[1, vol, 'triangle'], [1, vol * 0.4, 'sawtooth']]) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq * mult;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(v, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur);
+    }
+  };
+  note(C5, t, 0.25, 0.18);
+  note(E5, t + 0.13, 0.25, 0.18);
+  note(G5, t + 0.26, 0.25, 0.18);
+  // 마무리 화음
+  for (const f of [C5, E5, G5, C6]) note(f, t + 0.42, 1.0, 0.12);
+}
+
 // 경고 — 낮은 사각파 두 번
 function playWarning() {
   const ctx = getAudio();
@@ -557,6 +585,7 @@ function onMistake(r, c) {
 
 function onLevelClear() {
   locked = true;
+  playFanfare();
   showOverlay('🎉 Level Clear!', `고양이 ${size}마리를 모두 찾았어요!`, 'Next Level', () => {
     level++;
     size = Math.min(MIN_SIZE + level - 1, MAX_SIZE);
