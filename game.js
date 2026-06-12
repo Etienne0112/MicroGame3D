@@ -509,6 +509,7 @@ function render() {
       const isFlash = flashing && flashing.r === r && flashing.c === c;
       if (cell.revealed) {
         el.classList.add('revealed');
+        el.style.backgroundColor = REGION_COLORS[reg]; // 고양이 배경 = 카드 뒷면 색
         el.textContent = CAT_FACES[reg];
       } else if (isFlash) {
         el.classList.add('revealed', 'flash-stone');

@@ -93,7 +93,6 @@ main {
 .card.br { border-right-width: 3px; }
 
 .card.revealed {
-  background: #edf2f4;
   cursor: default;
 }
 
