@@ -112,6 +112,12 @@ main {
   color: #8d99ae;
 }
 
+.credit {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #5c677d;
+}
+
 /* 오답 시 보드 전체 진동 */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
