@@ -55,6 +55,8 @@ main {
 }
 
 #board {
+  /* 보드 위 터치는 스크롤/줌 대신 드래그 마킹으로 사용 */
+  touch-action: none;
   display: grid;
   gap: 2px;
   background: #1a1b2e;

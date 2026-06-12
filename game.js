@@ -298,17 +298,32 @@ function isDiamond(r, c) {
   return board.diamondCols[r] === c;
 }
 
+let pendingR = -1, pendingC = -1; // 보류 중인 싱글클릭의 위치
+
 function onCellClick(r, c) {
   if (suppressClick) return;
-  clearTimeout(clickTimer);
-  clickTimer = setTimeout(() => singleClick(r, c), DBLCLICK_DELAY);
+  if (clickTimer) {
+    clearTimeout(clickTimer);
+    clickTimer = null;
+    if (pendingR === r && pendingC === c) {
+      // 같은 칸 연속 클릭 → 더블클릭으로 처리 (dblclick 이벤트가 없는 iOS 등 대비)
+      doubleClick(r, c);
+      return;
+    }
+    singleClick(pendingR, pendingC); // 다른 칸의 보류된 클릭은 즉시 확정
+  }
+  pendingR = r;
+  pendingC = c;
+  clickTimer = setTimeout(() => {
+    clickTimer = null;
+    singleClick(r, c);
+  }, DBLCLICK_DELAY);
 }
 
 // ----- 드래그 마킹: 시작 카드의 토글 결과를 지나가는 카드 전체에 적용 -----
 
-function onCellDown(r, c, e) {
-  if (locked || e.button !== 0) return;
-  e.preventDefault(); // 네이티브 드래그/텍스트 선택 방지
+function startDrag(r, c) {
+  if (locked) return;
   const cell = cells[r][c];
   if (cell.revealed || cell.mark === 'wrong') return;
   drag = {
@@ -318,6 +333,12 @@ function onCellDown(r, c, e) {
     moved: false,
     visited: new Set(),
   };
+}
+
+function onCellDown(r, c, e) {
+  if (e.button !== 0) return;
+  e.preventDefault(); // 네이티브 드래그/텍스트 선택 방지
+  startDrag(r, c);
 }
 
 function onCellEnter(r, c) {
@@ -350,8 +371,40 @@ document.addEventListener('mouseup', () => {
   drag = null;
 });
 
+// ----- 터치 드래그: 손가락 아래의 카드를 찾아 마우스 드래그와 동일하게 처리 -----
+
+boardEl.addEventListener('touchstart', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  startDrag(+card.dataset.r, +card.dataset.c);
+});
+
+boardEl.addEventListener('touchmove', (e) => {
+  if (!drag || locked) return;
+  const t = e.touches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const card = el && el.closest('.card');
+  if (!card) return;
+  const r = +card.dataset.r, c = +card.dataset.c;
+  // 시작 카드 안에서의 미세한 움직임은 드래그로 보지 않는다 (탭/더블탭 보존)
+  if (!drag.moved && r === drag.startR && c === drag.startC) return;
+  onCellEnter(r, c);
+}, { passive: true });
+
+function endTouch() {
+  if (drag && drag.moved) {
+    suppressClick = true;
+    // 터치의 합성 click은 touchend보다 늦게 올 수 있어 여유를 둔다
+    setTimeout(() => { suppressClick = false; }, 350);
+  }
+  drag = null;
+}
+document.addEventListener('touchend', endTouch);
+document.addEventListener('touchcancel', endTouch);
+
 function onCellDblClick(r, c) {
   clearTimeout(clickTimer);
+  clickTimer = null;
   doubleClick(r, c);
 }
 
@@ -443,6 +496,8 @@ function render() {
       const cell = cells[r][c];
       const el = document.createElement('div');
       el.className = 'card';
+      el.dataset.r = r;
+      el.dataset.c = c;
 
       // 다른 색 영역과 맞닿은 변에 굵은 경계선
       const reg = board.regions[r][c];
