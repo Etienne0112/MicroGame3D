@@ -11,16 +11,18 @@
     <h1>🐾 myMeowDoku 😺</h1>
     <div class="status-bar">
       <span id="level-display">Level 1</span>
-      <span id="lives-display">❤️❤️❤️</span>
       <button id="restart-btn" title="이 판 다시 시작">↺ Restart</button>
+      <button id="reset-btn" title="처음부터 새로 시작">레벨 1에서 다시 시작</button>
     </div>
   </header>
 
   <main>
     <div id="board"></div>
+    <div class="board-footer">
+      <span id="lives-display">❤️❤️❤️</span>
+    </div>
     <p class="hint">클릭: 마킹 / 더블클릭: 카드 뒤집어 고양이 찾기</p>
     <p class="credit">동명대학교 게임학부 강영민</p>
-    <button id="reset-btn">레벨 1에서 다시 시작</button>
   </main>
 
   <div id="overlay" class="hidden">

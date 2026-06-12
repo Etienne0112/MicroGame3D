@@ -119,12 +119,11 @@ main {
 }
 
 #reset-btn {
-  margin-top: 16px;
   background: none;
   color: #8d99ae;
   border: 1px solid #5c677d;
   border-radius: 8px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -132,6 +131,14 @@ main {
 #reset-btn:hover {
   color: #edf2f4;
   border-color: #8d99ae;
+}
+
+.board-footer {
+  width: min(90vw, 560px);
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  font-size: 1.1rem;
 }
 
 /* 오답 시 보드 전체 진동 */
