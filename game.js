@@ -677,6 +677,13 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   resetRound();
 });
 
+// 레벨 1부터 새로 시작 (진행 저장도 새 판으로 덮어쓴다)
+document.getElementById('reset-btn').addEventListener('click', () => {
+  level = 1;
+  size = MIN_SIZE;
+  newBoard();
+});
+
 // ---------- 진행 저장: 항상 마지막 도달 레벨에서 시작 ----------
 // 큰 판은 생성에 수 초가 걸릴 수 있어 레벨과 함께 판 자체를 저장한다
 // → 페이지를 다시 열면 생성 없이 즉시 복원
