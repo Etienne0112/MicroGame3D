@@ -289,6 +289,7 @@ function resetRound() {
   locked = false;
   flashing = null;
   hideOverlay();
+  buildBoard();
   render();
 }
 
@@ -482,52 +483,67 @@ function onLevelClear() {
 
 // ---------- 렌더링 ----------
 
-function render() {
-  levelEl.textContent = `Level ${level} (${size}×${size})`;
-  livesEl.textContent =
-    '❤️'.repeat(MAX_MISTAKES - mistakes) + '🖤'.repeat(mistakes);
+// 보드 DOM은 판이 바뀔 때 한 번만 만들고, 상태 변화는 제자리 갱신한다.
+// 전체 재생성(innerHTML='')은 touchstart 대상 요소를 제거해
+// 진행 중인 터치 드래그의 이벤트 스트림을 끊어버리므로 금지.
+let cellEls = []; // 2D [r][c] -> 카드 요소
 
+function buildBoard() {
   boardEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
   boardEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
   boardEl.innerHTML = '';
-
+  cellEls = [];
   for (let r = 0; r < size; r++) {
+    cellEls.push([]);
     for (let c = 0; c < size; c++) {
-      const cell = cells[r][c];
       const el = document.createElement('div');
       el.className = 'card';
       el.dataset.r = r;
       el.dataset.c = c;
 
-      // 다른 색 영역과 맞닿은 변에 굵은 경계선
+      // 다른 색 영역과 맞닿은 변에 굵은 경계선 (판이 같는 동안 불변)
       const reg = board.regions[r][c];
       if (r === 0 || board.regions[r - 1][c] !== reg) el.classList.add('bt');
       if (r === size - 1 || board.regions[r + 1][c] !== reg) el.classList.add('bb');
       if (c === 0 || board.regions[r][c - 1] !== reg) el.classList.add('bl');
       if (c === size - 1 || board.regions[r][c + 1] !== reg) el.classList.add('br');
 
-      const isFlash = flashing && flashing.r === r && flashing.c === c;
-      if (cell.revealed) {
-        el.classList.add('revealed');
-        el.style.backgroundColor = REGION_COLORS[reg]; // 고양이 배경 = 카드 뒷면 색
-        el.textContent = CAT_FACES[reg];
-      } else if (isFlash) {
-        el.classList.add('revealed', 'flash-stone');
-        el.textContent = '🪨';
-      } else {
-        el.style.backgroundColor = REGION_COLORS[reg];
-        if (cell.mark === 'paw') el.textContent = '🐾';
-        if (cell.mark === 'wrong') {
-          el.classList.add('wrong');
-          el.textContent = '✕';
-        }
-      }
-
       el.addEventListener('click', () => onCellClick(r, c));
       el.addEventListener('dblclick', () => onCellDblClick(r, c));
       el.addEventListener('mousedown', (e) => onCellDown(r, c, e));
       el.addEventListener('mouseenter', () => onCellEnter(r, c));
+      cellEls[r].push(el);
       boardEl.appendChild(el);
+    }
+  }
+}
+
+function render() {
+  levelEl.textContent = `Level ${level} (${size}×${size})`;
+  livesEl.textContent =
+    '❤️'.repeat(MAX_MISTAKES - mistakes) + '🖤'.repeat(mistakes);
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const cell = cells[r][c];
+      const el = cellEls[r][c];
+      const reg = board.regions[r][c];
+      const isFlash = flashing && flashing.r === r && flashing.c === c;
+
+      el.classList.toggle('revealed', cell.revealed || isFlash);
+      el.classList.toggle('flash-stone', isFlash);
+      el.classList.toggle('wrong', !cell.revealed && !isFlash && cell.mark === 'wrong');
+
+      if (cell.revealed) {
+        el.style.backgroundColor = REGION_COLORS[reg]; // 고양이 배경 = 카드 뒷면 색
+        el.textContent = CAT_FACES[reg];
+      } else if (isFlash) {
+        el.style.backgroundColor = ''; // .flash-stone의 회색 배경 사용
+        el.textContent = '🪨';
+      } else {
+        el.style.backgroundColor = REGION_COLORS[reg];
+        el.textContent = cell.mark === 'paw' ? '🐾' : cell.mark === 'wrong' ? '✕' : '';
+      }
     }
   }
 }
