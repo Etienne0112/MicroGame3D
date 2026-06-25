@@ -3,40 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>myMeowDoku</title>
+  <title>myMeowDoku 3D</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>🐾 myMeowDoku 😺</h1>
-    <div class="status-bar">
-      <span id="level-display">Level 1</span>
-      <button id="restart-btn" title="이 판 다시 시작">↺ Restart</button>
-      <button id="reset-btn" title="처음부터 새로 시작">레벨 1에서 다시 시작</button>
+    <h1>🐾 myMeowDoku 3D 😺</h1>
+    
+    <!-- 격자 크기 선택 패널 -->
+    <div class="controls-panel" style="display: flex; gap: 12px; align-items: center; justify-content: center; margin-bottom: 12px; flex-wrap: wrap;">
+      <label for="size-select" style="font-weight: 700; color: #edf2f4;">크기 (N):</label>
+      <select id="size-select" style="padding: 6px 12px; border-radius: 8px; border: none; background: #8d99ae; color: #2b2d42; font-weight: 700; cursor: pointer; font-size: 0.95rem;">
+        <!-- JS에서 동적으로 3D에 맞게 추가함 -->
+      </select>
     </div>
+
+    <div class="status-bar">
+      <span id="level-display" style="display: none;">Level 1</span>
+      <span id="streak-display" style="font-weight: 700; color: #f9c74f; font-size: 1.15rem; margin-right: 10px;">🔥 0연승 중!</span>
+      <button id="mode-btn" title="조작 모드 전환 (마킹 / 이동)">🐾 마킹 모드</button>
+      <button id="restart-btn" title="이 판 다시 시작">↺ Restart</button>
+      <button id="reset-btn" title="연승 정보 초기화 및 재생성">연승 초기화</button>
+    </div>
+    
     <div id="banner" class="hidden">
       <span id="banner-msg"></span>
-      <button id="banner-btn">Next Level ▶</button>
+      <button id="banner-btn">Next Stage ▶</button>
     </div>
   </header>
 
   <main>
-    <div id="board"></div>
+    <div id="board-wrapper">
+      <div id="board"></div>
+    </div>
     <div class="board-footer">
+      <span id="coords-display" style="color: #8d99ae; font-size: 0.95rem;">좌표: (x: -, y: -)</span>
       <span id="lives-display">❤️❤️❤️</span>
     </div>
     <div class="help">
       <div class="help-box">
         <strong>클릭</strong>
-        <span>🐾 마킹</span>
+        <span>🐾 마킹 / 뒤집기</span>
       </div>
       <div class="help-box">
         <strong>더블클릭</strong>
         <span>카드 뒤집어 고양이 찾기</span>
       </div>
     </div>
-    <p class="rules">각 행에 고양이 한 마리, 각 열에 고양이 한 마리, 각 색깔 영역에 고양이 한 마리, 고양이 옆에는 고양이가 있을 수 없어요!</p>
-    <p class="credit">동명대학교 게임학부 강영민</p>
+    <p class="rules">3차원 공간의 각 축(가로, 세로, 깊이)의 1D 라인마다 고양이 정확히 1마리, 각 색깔 영역마다 고양이 정확히 1마리, 3차원 인접 칸(대각선 포함 26방향)에는 고양이끼리 붙어 있을 수 없어요!</p>
+    <p class="credit">동명대학교 게임학부 강영민 (원 개발자) | 이주현 (포크한 놈)</p>
   </main>
 
   <div id="overlay" class="hidden">

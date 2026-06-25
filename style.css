@@ -87,6 +87,37 @@ main {
   padding-bottom: 24px;
 }
 
+/* 기본 상태 (기본적으로 4D 스크롤 스타일 유지) */
+#board-wrapper {
+  width: 98vw;
+  height: 80vh;
+  overflow: auto;
+  border: 3px solid #3d405b;
+  border-radius: 12px;
+  background: #111222;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+  margin: 10px 0;
+  cursor: grab;
+}
+#board-wrapper:active {
+  cursor: grabbing;
+}
+
+/* 3차원일 때는 스크롤 박스가 좌우로만 스크롤 가능 */
+.dim-3d #board-wrapper {
+  width: 98vw;
+  height: auto;
+  max-height: 80vh;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 3px solid #3d405b;
+  border-radius: 12px;
+  background: #111222;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+  margin: 10px 0;
+  cursor: grab;
+}
+
 #board {
   /* 보드 위 터치는 스크롤/줌 대신 드래그 마킹으로 사용 */
   touch-action: none;
@@ -95,25 +126,69 @@ main {
   background: #1a1b2e;
   padding: 6px;
   border-radius: 10px;
-  width: min(90vw, 560px);
-  aspect-ratio: 1;
+  width: max-content;
+  height: max-content;
 }
 
 .card {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 내용(이모지) 유무가 트랙 크기에 영향을 주지 않도록 최소 크기 고정 */
-  min-width: 0;
-  min-height: 0;
+  min-width: 24px;
+  min-height: 24px;
+  width: 24px;
+  height: 24px;
   overflow: hidden;
   line-height: 1;
-  font-size: clamp(0.9rem, 4vw, 1.6rem);
-  border-radius: 4px;
+  font-size: 14px;
+  border-radius: 3px;
   cursor: pointer;
-  transition: filter 0.1s;
   border: 0 solid #1a1b2e;
+  /* 필터 트랜지션을 제거하여 마우스 올릴 때 렉을 완벽하게 없앰 */
 }
+
+/* 조작 모드 버튼 */
+#mode-btn {
+  background: #ef476f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#mode-btn:hover {
+  background: #f25c84;
+}
+#mode-btn.pan-active {
+  background: #06d6a0; /* 이동 모드 상태 색상 (초록색) */
+}
+
+/* 4D 하이라이트 효과 (필터 대신 초고속 GPU 하드웨어 가속 box-shadow 오버레이 사용) */
+.card.highlight-hover {
+  outline: 2px solid #ffffff !important;
+  outline-offset: -1px;
+  z-index: 5;
+  box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.15) !important;
+}
+
+.card.highlight-axis {
+  box-shadow: inset 0 0 0 999px rgba(0, 180, 216, 0.35) !important;
+}
+
+.card.highlight-adj {
+  box-shadow: inset 0 0 0 999px rgba(239, 71, 111, 0.3) !important;
+}
+
+.card.highlight-rowcol {
+  box-shadow: inset 0 0 0 999px rgba(255, 190, 11, 0.25) !important;
+}
+
+/* 3D 서브보드 구분선 (Z-슬라이스 구분) */
+.card.sub-bl { border-left: 5px solid #1a1b2e !important; }
+.card.sub-br { border-right: 5px solid #1a1b2e !important; }
 
 .card:hover {
   filter: brightness(1.15);
@@ -171,7 +246,7 @@ main {
 /* 고양이 배치 규칙 안내 */
 .rules {
   margin: 10px 0 0;
-  max-width: min(90vw, 560px);
+  max-width: 98vw;
   text-align: center;
   font-size: 0.88rem;
   line-height: 1.5;
@@ -200,11 +275,13 @@ main {
 }
 
 .board-footer {
-  width: min(90vw, 560px);
+  width: 98vw;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 8px;
   font-size: 1.1rem;
+  padding: 0 10px;
 }
 
 /* 오답 시 보드 전체 진동 */
