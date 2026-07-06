@@ -10,14 +10,173 @@ const CAT_FACES = [
   '🐈', '🐈‍⬛', '🦁', '🐯', '🐅', '🐆',
 ];
 
-// 색 영역마다 고유하고 서로 대조적인 N^2개의 색상을 생성하는 HSL 제너레이터 (황금비 분할 활용)
-function getRegionColor(regId) {
-  const goldenRatioConjugate = 0.618033988749895;
-  const hue = (regId * goldenRatioConjugate * 360) % 360;
-  // 채도: 65% ~ 85%, 밝기: 45% ~ 65% 분산 부여하여 대조 극대화
-  const saturation = 65 + (regId % 3) * 10;
-  const lightness = 45 + ((regId * 2) % 3) * 10;
-  return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`;
+let regionColors = [];
+
+// 인접한 영역들이 동일하거나 너무 가까운 색상을 갖지 않도록 판단하는 헬퍼 함수
+function isValidColor(idx, neighborColors, paletteSize) {
+  for (const nColor of neighborColors) {
+    if (idx === nColor) return false;
+    // 인접한 색상은 최소 3단계 이상의 Hue 거리를 유지하도록 필터링 (가독성 극대화)
+    const dist = Math.min(
+      Math.abs(idx - nColor),
+      paletteSize - Math.abs(idx - nColor)
+    );
+    if (dist <= 2) return false;
+  }
+  return true;
+}
+
+// 인접한 영역들이 동일한 색상을 갖지 않도록 3차원 인접 그래프를 기반으로 그리디 채색(Greedy Graph Coloring) 수행
+function computeRegionColors() {
+  if (!board || !board.regions) return;
+  const rows = getScreenRows();
+  const cols = getScreenCols();
+  
+  let maxRegionId = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (board.regions[r][c] > maxRegionId) {
+        maxRegionId = board.regions[r][c];
+      }
+    }
+  }
+  const numRegions = maxRegionId + 1;
+
+  // 인접 리스트 생성 (중복 방지를 위해 Set 사용)
+  const adj = Array.from({ length: numRegions }, () => new Set());
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const reg = board.regions[r][c];
+      const neighbors = get3DNeighbors(r, c);
+      for (const [nr, nc] of neighbors) {
+        const nreg = board.regions[nr][nc];
+        if (nreg !== reg) {
+          adj[reg].add(nreg);
+          adj[nreg].add(reg);
+        }
+      }
+    }
+  }
+
+  // 72가지의 대비가 선명하고 다채로운 HSL 색상 스펙트럼 동적 생성
+  const palette = [];
+  const totalColors = 72;
+  for (let i = 0; i < totalColors; i++) {
+    const hue = (i * (360 / totalColors)) % 360;
+    // 채도와 밝기를 격자로 다변화하여 다채로움 극대화
+    const saturation = 70 + (i % 4) * 6;     // 70%, 76%, 82%, 88%
+    const lightness = 42 + ((i * 3) % 4) * 5; // 42%, 57%, 47%, 52%
+    palette.push(`hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`);
+  }
+
+  // 해시 기반 색상 분배 및 충돌 완화 채색 알고리즘
+  const colorsAssigned = Array(numRegions).fill(-1);
+  for (let reg = 0; reg < numRegions; reg++) {
+    // 영역 ID를 해싱하여 넓게 퍼진 초기 색상 인덱스 부여 (다채로운 전역 색상 사용 유도)
+    let colorIdx = (reg * 17) % palette.length;
+    
+    // 이미 색상이 할당된 이웃 영역들의 색상 인덱스 수집
+    const neighborColors = [];
+    for (const nreg of adj[reg]) {
+      if (colorsAssigned[nreg] !== -1) {
+        neighborColors.push(colorsAssigned[nreg]);
+      }
+    }
+    
+    // 충돌나지 않으며 인접 영역과 명확히 구분되는 색상이 될 때까지 인덱스 시프트
+    while (!isValidColor(colorIdx, neighborColors, palette.length)) {
+      colorIdx = (colorIdx + 1) % palette.length;
+    }
+    
+    colorsAssigned[reg] = colorIdx;
+  }
+
+  regionColors = colorsAssigned.map(idx => palette[idx]);
+}
+
+// 하이라이트된 요소를 추적하여 마우스 아웃 시 고속으로 하이라이트를 해제하기 위한 캐시
+let highlightedEls = [];
+
+function clearHighlights() {
+  for (const el of highlightedEls) {
+    if (el) {
+      el.classList.remove('highlight-hover', 'highlight-axis', 'highlight-adj', 'highlight-rowcol');
+    }
+  }
+  highlightedEls = [];
+}
+
+// 마우스 호버 및 터치 드래그에 따라 해당 셀의 가로/세로/깊이(XYZ) 1D 축 및 3D 인접 26방향을 시각적으로 하이라이트
+function updateHighlights(r, c) {
+  clearHighlights();
+  if (r === -1 || c === -1) return;
+  if (locked) return;
+  
+  const rows = getScreenRows();
+  const cols = getScreenCols();
+  
+  // 1. 현재 호버된 카드
+  const hoverEl = cellEls[r]?.[c];
+  if (hoverEl) {
+    hoverEl.classList.add('highlight-hover');
+    highlightedEls.push(hoverEl);
+  }
+  
+  // 2. X, Y, Z축 1D 라인 하이라이트 (highlight-axis)
+  // X축: 동일 행, 동일 z 슬라이스
+  const z = Math.floor(c / N);
+  const zStart = z * N;
+  for (let xp = 0; xp < N; xp++) {
+    const colIndex = zStart + xp;
+    if (colIndex !== c) {
+      const el = cellEls[r]?.[colIndex];
+      if (el) {
+        el.classList.add('highlight-axis');
+        highlightedEls.push(el);
+      }
+    }
+  }
+  
+  // Y축: 동일 스크린 열 c
+  for (let yp = 0; yp < N; yp++) {
+    if (yp !== r) {
+      const el = cellEls[yp]?.[c];
+      if (el) {
+        el.classList.add('highlight-axis');
+        highlightedEls.push(el);
+      }
+    }
+  }
+  
+  // Z축: 모든 슬라이스를 가로질러 동일 로컬 (x, y) 위치
+  const xOffset = c % N;
+  for (let zp = 0; zp < N; zp++) {
+    const colIndex = zp * N + xOffset;
+    if (colIndex !== c) {
+      const el = cellEls[r]?.[colIndex];
+      if (el) {
+        el.classList.add('highlight-axis');
+        highlightedEls.push(el);
+      }
+    }
+  }
+  
+  // 3. 3차원 26방향 대각선 포함 인접 칸 하이라이트 (highlight-adj)
+  for (let rr = 0; rr < rows; rr++) {
+    for (let cc = 0; cc < cols; cc++) {
+      if (rr === r && cc === c) continue;
+      if (areAdjacent(r, c, rr, cc)) {
+        const el = cellEls[rr]?.[cc];
+        if (el) {
+          // 이미 축 하이라이트가 되어있지 않은 경우에만 인접 칸 하이라이트 적용해 가독성 증대
+          if (!el.classList.contains('highlight-axis')) {
+            el.classList.add('highlight-adj');
+            highlightedEls.push(el);
+          }
+        }
+      }
+    }
+  }
 }
 
 // 차원(dim) 및 크기(N), 연승(winStreak) 기본 세팅
@@ -70,6 +229,30 @@ modeBtnEl.addEventListener('click', () => {
     modeBtnEl.classList.remove('pan-active');
   }
 });
+
+// ----- 3D 입체 뷰 / 평면 나열 뷰 전환 기능 -----
+let isometricMode = true; // 대안적 입체 구조 모드 기본 활성화!
+
+const viewBtnEl = document.getElementById('view-btn');
+
+viewBtnEl.addEventListener('click', () => {
+  isometricMode = !isometricMode;
+  updateViewMode();
+});
+
+function updateViewMode() {
+  if (isometricMode) {
+    viewBtnEl.textContent = '🧱 3D 입체 뷰';
+    viewBtnEl.classList.add('view-3d-active');
+    boardEl.className = 'isometric-3d';
+    document.body.classList.add('view-isometric-active');
+  } else {
+    viewBtnEl.textContent = '📋 평면 나열 뷰';
+    viewBtnEl.classList.remove('view-3d-active');
+    boardEl.className = 'flat-view';
+    document.body.classList.remove('view-isometric-active');
+  }
+}
 
 // ---------- 3D 격자 매핑 공식 ----------
 
@@ -311,6 +494,9 @@ function resetRound() {
   
   // 차원 전용 스냅 레이아웃 클래스 바인딩 (2D 중앙 고정 배치, 3D 가로 전용 스크롤 처리)
   document.body.className = 'dim-' + dim + 'd';
+  updateViewMode();
+  
+  computeRegionColors();
   
   buildBoard();
   render();
@@ -475,6 +661,7 @@ function onCellDown(r, c, e) {
 
 function onCellEnter(r, c) {
   updateCoordsDisplay(r, c);
+  updateHighlights(r, c);
   if (!drag || locked || panMode) return;
   if (!drag.moved) {
     drag.moved = true;
@@ -533,12 +720,14 @@ function endTouch() {
     setTimeout(() => { suppressClick = false; }, 350);
   }
   drag = null;
+  clearHighlights();
 }
 document.addEventListener('touchend', endTouch);
 document.addEventListener('touchcancel', endTouch);
 
 boardEl.addEventListener('mouseleave', () => {
   document.getElementById('coords-display').textContent = '3D 좌표: (x: -, y: -, z: -)';
+  clearHighlights();
 });
 
 function onCellDblClick(r, c) {
@@ -741,38 +930,50 @@ function buildBoard() {
   let cellSize = Math.floor((window.innerHeight * 0.5) / N) - 2;
   cellSize = Math.max(12, Math.min(cellSize, 24));
 
-  boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-  boardEl.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
   boardEl.innerHTML = '';
-  cellEls = [];
-  for (let r = 0; r < rows; r++) {
-    cellEls.push([]);
-    for (let c = 0; c < cols; c++) {
-      const el = document.createElement('div');
-      el.className = 'card';
-      el.style.width = `${cellSize}px`;
-      el.style.height = `${cellSize}px`;
-      el.style.fontSize = `${Math.floor(cellSize * 0.7)}px`;
-      el.dataset.r = r;
-      el.dataset.c = c;
+  // 기존 boardEl의 격자 설정을 해제하여 개별 슬라이스 단위로 렌더링되도록 처리
+  boardEl.style.gridTemplateColumns = '';
+  boardEl.style.gridTemplateRows = '';
+  
+  // 2D 매핑용 헬퍼 초기화
+  cellEls = Array.from({ length: rows }, () => Array(cols).fill(null));
 
-      // 다른 색 영역과 맞닿은 변에 굵은 경계선
-      const reg = board.regions[r][c];
-      if (r === 0 || board.regions[r - 1][c] !== reg) el.classList.add('bt');
-      if (r === rows - 1 || board.regions[r + 1][c] !== reg) el.classList.add('bb');
-      if (c === 0 || board.regions[r][c - 1] !== reg) el.classList.add('bl');
-      if (c === cols - 1 || board.regions[r][c + 1] !== reg) el.classList.add('br');
+  for (let z = 0; z < N; z++) {
+    const sliceEl = document.createElement('div');
+    sliceEl.className = 'slice-container';
+    sliceEl.style.setProperty('--slice-z', z);
+    sliceEl.style.display = 'grid';
+    sliceEl.style.gridTemplateColumns = `repeat(${N}, ${cellSize}px)`;
+    sliceEl.style.gridTemplateRows = `repeat(${N}, ${cellSize}px)`;
 
-      // 3차원 서브보드 구분선 추가 (N 크기 격자 구분)
-      if (c % N === 0) el.classList.add('sub-bl');
-      if (c % N === N - 1) el.classList.add('sub-br');
+    for (let r = 0; r < rows; r++) {
+      for (let x = 0; x < N; x++) {
+        const c = z * N + x;
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.style.width = `${cellSize}px`;
+        el.style.height = `${cellSize}px`;
+        el.style.fontSize = `${Math.floor(cellSize * 0.7)}px`;
+        el.dataset.r = r;
+        el.dataset.c = c;
 
-      el.addEventListener('click', () => onCellClick(r, c));
-      el.addEventListener('dblclick', () => onCellDblClick(r, c));
-      el.addEventListener('mousedown', (e) => onCellDown(r, c, e));
-      cellEls[r].push(el);
-      boardEl.appendChild(el);
+        // 다른 색 영역과 맞닿은 변에 굵은 경계선 (각 슬라이스 평면 독립 판정)
+        const reg = board.regions[r][c];
+        if (r === 0 || board.regions[r - 1][c] !== reg) el.classList.add('bt');
+        if (r === rows - 1 || board.regions[r + 1][c] !== reg) el.classList.add('bb');
+        if (x === 0 || board.regions[r][c - 1] !== reg) el.classList.add('bl');
+        if (x === N - 1 || board.regions[r][c + 1] !== reg) el.classList.add('br');
+
+        el.addEventListener('click', () => onCellClick(r, c));
+        el.addEventListener('dblclick', () => onCellDblClick(r, c));
+        el.addEventListener('mousedown', (e) => onCellDown(r, c, e));
+        el.addEventListener('mouseenter', () => onCellEnter(r, c));
+        
+        cellEls[r][c] = el;
+        sliceEl.appendChild(el);
+      }
     }
+    boardEl.appendChild(sliceEl);
   }
 }
 
@@ -796,7 +997,7 @@ function render() {
       el.classList.toggle('flash-stone', isFlash);
       el.classList.toggle('wrong', !cell.revealed && !isFlash && cell.mark === 'wrong');
 
-      const colVal = getRegionColor(reg);
+      const colVal = regionColors[reg];
       const catVal = CAT_FACES[reg % CAT_FACES.length];
 
       if (cell.revealed) {

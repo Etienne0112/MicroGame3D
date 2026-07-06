@@ -166,6 +166,90 @@ main {
   background: #06d6a0; /* 이동 모드 상태 색상 (초록색) */
 }
 
+/* 🧱 3D 입체 뷰 및 뷰 토글 버튼 스타일 */
+#view-btn {
+  background: #118ab2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#view-btn:hover {
+  background: #1ab0e5;
+}
+#view-btn.view-3d-active {
+  background: #ffb703; /* 3D 입체 활성화 시 황금빛 노란색 */
+  color: #023047;
+}
+
+/* 1. Flat View (기본 수평 나열) */
+#board.flat-view {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  padding: 16px;
+  width: max-content;
+  margin: 0 auto;
+  background: none;
+}
+
+/* 2. Isometric 3D Layer Stack View (3D 아코디언 적층식 레이어) */
+#board.isometric-3d {
+  display: block;
+  position: relative;
+  width: 580px;
+  height: 580px;
+  margin: 60px auto;
+  perspective: 1600px;
+  transform-style: preserve-3d;
+  background: none;
+  padding: 0;
+}
+
+#board.isometric-3d .slice-container {
+  position: absolute;
+  top: 50px;
+  left: 100px;
+  transform-style: preserve-3d;
+  /* 3차원 입체 투영 회전 및 translateZ (각 레이어 간격 조정) */
+  transform: rotateX(60deg) rotateY(0deg) rotateZ(-45deg) translateZ(calc(var(--slice-z) * 32px));
+  box-shadow: -10px 10px 25px rgba(0, 0, 0, 0.55);
+  transition: transform 0.4s ease, opacity 0.3s, box-shadow 0.3s;
+  background: rgba(26, 27, 46, 0.9);
+  opacity: 0.75;
+}
+
+/* 마우스 호버 시 해당 레이어가 약간 위로 올라가고 밝아지는 아코디언 효과 */
+#board.isometric-3d .slice-container:hover {
+  opacity: 1;
+  box-shadow: -15px 15px 35px rgba(255, 255, 255, 0.12), -15px 15px 30px rgba(0, 0, 0, 0.7);
+  transform: rotateX(60deg) rotateY(0deg) rotateZ(-45deg) translateZ(calc(var(--slice-z) * 32px + 24px));
+  z-index: 100;
+}
+
+/* 3D 뷰일 때 스크롤 컨테이너의 3차원 클리핑 완전 방지 */
+body.view-isometric-active #board-wrapper {
+  overflow: visible !important;
+  cursor: default;
+  max-height: none;
+  height: auto;
+}
+
+/* 3D 뷰에서 현재 호버된 카드 튀어나오는 입체 효과 */
+#board.isometric-3d .card {
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+#board.isometric-3d .card.highlight-hover {
+  transform: translateZ(12px) !important;
+  box-shadow: -4px 4px 8px rgba(0, 0, 0, 0.5), inset 0 0 0 999px rgba(255, 255, 255, 0.25) !important;
+  z-index: 200;
+}
+
 /* 4D 하이라이트 효과 (필터 대신 초고속 GPU 하드웨어 가속 box-shadow 오버레이 사용) */
 .card.highlight-hover {
   outline: 2px solid #ffffff !important;
