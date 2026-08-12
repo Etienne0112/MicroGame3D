@@ -3,48 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#101826">
-  <meta name="description" content="3차원 큐브에서 규칙을 따라 숨은 고양이를 찾는 논리 퍼즐 게임">
-  <title>MicroGame3D · 고양이 큐브 퍼즐</title>
+  <meta name="theme-color" content="#f1efe8">
+  <meta name="description" content="세 축과 색 영역의 규칙을 따라 숨은 고양이를 찾는 3D 논리 퍼즐 게임">
+  <meta property="og:title" content="MicroGame3D · Cat Logic Cube">
+  <meta property="og:description" content="Find every cat across X, Y and Z.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://etienne0112.github.io/MicroGame3D/">
+  <meta property="og:image" content="https://etienne0112.github.io/MicroGame3D/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>MicroGame3D · Cat Logic Cube</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="dim-3d">
-  <div class="app-shell">
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true"><span>🐾</span></div>
-        <div>
-          <p class="eyebrow">CAT LOGIC PUZZLE</p>
-          <h1>MicroGame<span>3D</span></h1>
-          <p class="tagline">층을 나눠 세 축의 고양이를 찾아보세요.</p>
-        </div>
-      </div>
+<body class="dim-3d" data-site-id="micro3d">
+  <header class="navbar">
+    <div class="nav-container">
+      <a class="nav-brand" href="#top" aria-label="MicroGame3D 홈">
+        <span class="brand-mark">M3D.</span>
+        <span class="brand-copy">MICRO GAME<br>CAT LOGIC CUBE</span>
+      </a>
+      <span class="issue-label">PUZZLE SYSTEM / 2026</span>
+      <nav class="nav-actions" aria-label="사이트와 화면 설정">
+        <details class="site-network-menu" id="site-network-menu">
+          <summary class="nav-button">SITES <span aria-hidden="true">＋</span></summary>
+          <div class="site-network-popover" id="site-network-popover"></div>
+        </details>
+        <button class="icon-button" id="sound-toggle" type="button" aria-label="효과음 끄기" aria-pressed="true">♪</button>
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="색상 테마 바꾸기">◐</button>
+      </nav>
+    </div>
+  </header>
 
-      <div class="quick-stats" aria-label="게임 현황">
-        <div class="stat-card">
-          <span class="stat-label">연승</span>
-          <strong id="streak-display">🔥 0</strong>
+  <div class="app-shell" id="top">
+    <section class="intro" aria-labelledby="game-title">
+      <div class="intro-register"><span>MICRO PUZZLE / VOLUME 03</span><span>THREE AXES · ONE CAT PER LINE</span></div>
+      <div class="intro-grid">
+        <div class="intro-copy">
+          <p class="eyebrow"><i class="signal-dot" aria-hidden="true"></i> LOGIC FIELD ONLINE</p>
+          <h1 id="game-title">FIND THE CATS<br><em>ACROSS THREE</em><br>AXES.</h1>
+          <p class="tagline">X·Y·Z 직선과 색 영역의 단서를 겹쳐 보고, 3차원 큐브 안에 숨어 있는 고양이를 모두 찾아보세요.</p>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">남은 기회</span>
-          <strong id="lives-display">❤️❤️❤️</strong>
+        <div class="dimension-map" aria-hidden="true">
+          <span class="orbit orbit-one"></span>
+          <span class="orbit orbit-two"></span>
+          <span class="axis-line axis-x">X</span>
+          <span class="axis-line axis-y">Y</span>
+          <span class="axis-line axis-z">Z</span>
+          <span class="cube-core">🐈<small>SCAN</small></span>
+          <span class="signal-label signal-label-a">REGION / 01</span>
+          <span class="signal-label signal-label-b">NO CONTACT / 26</span>
         </div>
       </div>
-    </header>
+      <div class="status-strip" aria-label="게임 현황">
+        <div><small>CURRENT CUBE</small><strong id="level-display">9 × 9 × 9</strong></div>
+        <div><small>CATS FOUND</small><strong id="cats-display">0 / 81</strong><span class="mini-progress"><i id="cats-progress"></i></span></div>
+        <div><small>WIN STREAK</small><strong id="streak-display">🔥 0</strong></div>
+        <div><small>CHANCES LEFT</small><strong id="lives-display">❤️❤️❤️</strong></div>
+      </div>
+    </section>
 
     <main class="game-layout">
-      <section class="board-panel" aria-labelledby="level-display">
+      <section class="board-panel" aria-labelledby="board-title">
+        <div class="panel-register"><span>INTERACTIVE CUBE / LIVE</span><span id="status-copy">축과 영역의 교차점을 읽어 보세요.</span></div>
         <div class="board-heading">
           <div>
-            <p class="eyebrow">CURRENT CUBE</p>
-            <h2 id="level-display">9 × 9 × 9 큐브</h2>
+            <p class="eyebrow">LAYER WORKBENCH</p>
+            <h2 id="board-title">CUBE SLICES</h2>
           </div>
           <div id="coords-display" class="coords" aria-live="polite">x — · y — · z —</div>
         </div>
 
         <div id="banner" class="banner hidden" role="status">
           <span id="banner-msg"></span>
-          <button id="banner-btn" type="button">다음 퍼즐 →</button>
+          <button id="banner-btn" type="button">NEXT PUZZLE ↗</button>
         </div>
 
         <div id="board-wrapper" tabindex="0" aria-label="3D 퍼즐 보드. 층별 보기는 가로와 세로로 스크롤할 수 있습니다.">
@@ -52,30 +82,26 @@
         </div>
 
         <div class="legend" aria-label="보드 강조 색상 설명">
-          <span><i class="legend-dot current"></i>현재 칸</span>
-          <span><i class="legend-dot axis"></i>같은 X·Y·Z 축</span>
-          <span><i class="legend-dot adjacent"></i>26방향 이웃</span>
+          <span><i class="legend-dot current"></i>CURRENT CELL</span>
+          <span><i class="legend-dot axis"></i>X · Y · Z AXIS</span>
+          <span><i class="legend-dot adjacent"></i>26 NEIGHBORS</span>
         </div>
       </section>
 
       <aside class="control-panel" aria-label="게임 설정과 도움말">
-        <section class="control-section">
+        <section class="control-section setup-section">
           <div class="section-heading">
             <p class="eyebrow">BOARD SETUP</p>
-            <h2>보드 설정</h2>
+            <h2>CONTROL DESK</h2>
           </div>
 
-          <label class="field-label" for="size-select">큐브 크기</label>
+          <label class="field-label" for="size-select">CUBE SIZE / 큐브 크기</label>
           <select id="size-select"></select>
-          <p class="field-help">16³은 한 화면에 4,096칸을 표시하는 고난도 모드입니다.</p>
+          <p class="field-help">16³은 4,096칸을 펼치는 고난도 작업 공간입니다.</p>
 
           <div class="button-grid">
-            <button id="mode-btn" class="control-button accent" type="button" aria-pressed="false">
-              <span aria-hidden="true">🐾</span> 마킹 모드
-            </button>
-            <button id="view-btn" class="control-button" type="button" aria-pressed="false">
-              <span aria-hidden="true">🧊</span> 입체 보기
-            </button>
+            <button id="mode-btn" class="control-button accent" type="button" aria-pressed="false">🐾 마킹 모드</button>
+            <button id="view-btn" class="control-button" type="button" aria-pressed="false">🧊 입체 보기</button>
           </div>
 
           <div class="button-grid secondary-actions">
@@ -87,24 +113,15 @@
         <section class="control-section how-to">
           <div class="section-heading">
             <p class="eyebrow">HOW TO PLAY</p>
-            <h2>조작 방법</h2>
+            <h2>INPUT MAP</h2>
           </div>
-          <div class="help-row">
-            <kbd>클릭</kbd>
-            <span>고양이가 아닌 칸에 🐾 표시</span>
-          </div>
-          <div class="help-row">
-            <kbd>드래그</kbd>
-            <span>여러 칸을 한 번에 표시하거나 지우기</span>
-          </div>
-          <div class="help-row">
-            <kbd>더블클릭</kbd>
-            <span>카드를 뒤집어 정답 확인</span>
-          </div>
+          <div class="help-row"><kbd>CLICK</kbd><span>고양이가 아닌 칸에 🐾 표시</span></div>
+          <div class="help-row"><kbd>DRAG</kbd><span>여러 칸을 같은 상태로 빠르게 표시</span></div>
+          <div class="help-row"><kbd>DOUBLE</kbd><span>카드를 뒤집어 고양이인지 확인</span></div>
         </section>
 
         <details class="rules-card">
-          <summary>3D 배치 규칙 보기</summary>
+          <summary>GAME RULES / 3D 배치 규칙</summary>
           <ul>
             <li>모든 X·Y·Z 직선에는 고양이가 정확히 한 마리 있습니다.</li>
             <li>같은 색 영역에도 고양이가 정확히 한 마리 있습니다.</li>
@@ -114,13 +131,15 @@
       </aside>
     </main>
 
-    <footer>
-      동명대학교 게임학부 강영민 (원 개발자) · 이주현 (포크)
+    <footer class="site-footer">
+      <p><strong>MICROGAME3D / CAT LOGIC CUBE</strong><br>동명대학교 게임학부 강영민 (원 개발자) · 이주현 (포크)</p>
+      <div><a href="https://etienne0112.github.io/MainSite/">MAIN SITE</a> · <a href="https://github.com/Etienne0112/MicroGame3D" target="_blank" rel="noopener">THIS REPOSITORY ↗</a> · <a href="#top">TOP ↑</a></div>
     </footer>
   </div>
 
   <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
     <div class="overlay-box">
+      <div class="overlay-register">SYSTEM MESSAGE / M3D</div>
       <div class="overlay-icon" aria-hidden="true">🐈</div>
       <h2 id="overlay-title"></h2>
       <p id="overlay-message"></p>
@@ -128,6 +147,7 @@
     </div>
   </div>
 
-  <script src="game.js"></script>
+  <script src="site-network.js" defer></script>
+  <script src="game.js" type="module"></script>
 </body>
 </html>

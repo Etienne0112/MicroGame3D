@@ -1,9 +1,20 @@
+import {
+  SUPPORTED_SIZES,
+  getCoords as getCoreCoords,
+  getNumCats as getCoreNumCats,
+  getOrthogonalNeighbors,
+  getScreenCols as getCoreScreenCols,
+  getScreenRows as getCoreScreenRows,
+  makeBoard as createBoard,
+} from './core.js';
+
 'use strict';
 
 const SAVE_KEY = 'myMeowDoku.save';
+const SOUND_KEY = 'myMeowDoku.sound';
+const THEME_KEY = 'myMeowDoku.theme';
 const MAX_MISTAKES = 3;
 const DBLCLICK_DELAY = 250; // ms: 싱글클릭 확정 대기 시간
-const SUPPORTED_SIZES = [9, 16];
 
 // 영역마다 서로 다른 고양이 — 카드를 뒤집으면 그 영역의 고양이가 나온다
 const CAT_FACES = [
@@ -152,6 +163,7 @@ let clickTimer = null;
 let drag = null;           // { mode:'paw'|'none', startR, startC, moved, visited:Set }
 let suppressClick = false; // 드래그 직후 발생하는 click 이벤트 무시
 let revealedCatsCount = 0; // 스테이지 클리어 판정을 위한 카운터
+let statusMessage = '축과 영역의 교차점을 읽어 보세요.';
 
 const boardEl = document.getElementById('board');
 const boardWrapperEl = document.getElementById('board-wrapper');
@@ -169,6 +181,48 @@ const streakEl = document.getElementById('streak-display');
 const coordsEl = document.getElementById('coords-display');
 const restartBtnEl = document.getElementById('restart-btn');
 const resetBtnEl = document.getElementById('reset-btn');
+const catsEl = document.getElementById('cats-display');
+const catsProgressEl = document.getElementById('cats-progress');
+const statusCopyEl = document.getElementById('status-copy');
+const soundToggleEl = document.getElementById('sound-toggle');
+const themeToggleEl = document.getElementById('theme-toggle');
+
+function readPreference(key, fallback) {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writePreference(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch { /* 저장할 수 없는 환경에서는 현재 세션 상태만 유지한다. */ }
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeToggleEl.textContent = theme === 'dark' ? '◑' : '◐';
+  themeToggleEl.setAttribute('aria-label', theme === 'dark' ? '밝은 테마로 바꾸기' : '어두운 테마로 바꾸기');
+}
+
+const initialTheme = readPreference(
+  THEME_KEY,
+  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+);
+applyTheme(initialTheme);
+
+themeToggleEl.addEventListener('click', () => {
+  const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(nextTheme);
+  writePreference(THEME_KEY, nextTheme);
+});
+
+function setStatus(message) {
+  statusMessage = message;
+  if (statusCopyEl) statusCopyEl.textContent = message;
+}
 
 // ----- 조작 및 화면 이동 모드 상태 -----
 let panMode = false; // false = 마킹 모드, true = 보드 판 이동 모드
@@ -186,6 +240,7 @@ modeBtnEl.addEventListener('click', () => {
   modeBtnEl.classList.toggle('pan-active', panMode);
   modeBtnEl.setAttribute('aria-pressed', String(panMode));
   document.body.classList.toggle('pan-active', panMode);
+  setStatus(panMode ? '보드를 끌어 원하는 층으로 이동할 수 있습니다.' : '카드를 클릭하거나 드래그해 발자국을 표시하세요.');
   resetHighlights();
 });
 
@@ -197,6 +252,7 @@ const viewBtnEl = document.getElementById('view-btn');
 viewBtnEl.addEventListener('click', () => {
   isometricMode = !isometricMode;
   updateViewMode();
+  setStatus(isometricMode ? '입체 보기에서 층 사이의 공간 관계를 확인하세요.' : '층별 보기에서 각 단서를 차례로 읽어 보세요.');
 });
 
 function updateViewMode() {
@@ -212,173 +268,32 @@ function updateViewMode() {
 
 // 스크린상의 가로(Col) 개수 반환 (3D: N * N)
 function getScreenCols() {
-  return N * N;
+  return getCoreScreenCols(N);
 }
 
 // 스크린상의 세로(Row) 개수 반환 (3D: N)
 function getScreenRows() {
-  return N;
+  return getCoreScreenRows(N);
 }
 
 // 총 배치되어야 하는 고양이 수 반환 (3D: N^2)
 function getNumCats() {
-  return N * N;
+  return getCoreNumCats(N);
 }
 
 // 스크린 셀 (R, C)을 3D 공간 좌표 (x, y, z)로 변환
 function getCoords(r, c) {
-  const y = r;
-  const z = Math.floor(c / N);
-  const x = c % N;
-  return { x, y, z };
+  return getCoreCoords(N, r, c);
 }
 
 // ---------- 보드 생성 ----------
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// 3차원 고양이 배치 생성 (N^2개 배치)
-// 중복 열 및 행 버그를 완벽하게 차단하는 수학적 무결 배열 대입 방식 도입!
-function generateDiamonds3D() {
-  const rows = getScreenRows();
-  const cols = getScreenCols();
-  const isDiamond = Array.from({ length: rows }, () => Array(cols).fill(false));
-  const catCoords = [];
-  
-  // N = 9 및 N = 16에 대해 수학적으로 완벽한 비인접 선형 합동 배치 적용!
-  let a = 3;
-  let b = 5;
-  if (N === 9) {
-    a = 4;
-    b = 2;
-  }
-
-  for (let z = 0; z < N; z++) {
-    for (let x = 0; x < N; x++) {
-      const y = (a * x + b * z) % N;
-      const r = y;
-      const c = z * N + x;
-      isDiamond[r][c] = true;
-      catCoords.push([r, c]);
-    }
-  }
-  
-  return { isDiamond, catCoords };
-}
-
-// 3차원 공간상의 6방향 직교 인접 이웃들을 구함 (Z슬라이스 경계 누출 버그 완전 해결 및 입체 연결성 보장)
 function get3DNeighbors(r, c) {
-  const neighbors = [];
-  const x = c % N;
-  const z = Math.floor(c / N);
-  const rows = getScreenRows();
-  const cols = getScreenCols();
-  
-  // 1. X축 방향 이웃 (슬라이스 범위 안에서만)
-  if (x > 0) neighbors.push([r, c - 1]);
-  if (x < N - 1) neighbors.push([r, c + 1]);
-  
-  // 2. Y축 방향 이웃
-  if (r > 0) neighbors.push([r - 1, c]);
-  if (r < rows - 1) neighbors.push([r + 1, c]);
-  
-  // 3. Z축 방향 이웃 (입체적으로 위아래 슬라이스)
-  if (z > 0) neighbors.push([r, c - N]);
-  if (z < N - 1) neighbors.push([r, c + N]);
-  
-  return neighbors;
-}
-
-// 각 고양이를 시드로 성장시켜 영역 일대일 맵핑 (영역마다 고양이 정확히 1마리 보장)
-// 영역 수의 15% 가량을 강제로 크기 1~2로 고정하여 논리적인 첫 단추 실마리(소 영역) 연쇄를 보장
-function generateRegions(catCoords) {
-  const rows = getScreenRows();
-  const cols = getScreenCols();
-  const numCats = catCoords.length;
-  
-  const region = Array.from({ length: rows }, () => Array(cols).fill(-1));
-  const sizes = Array(numCats).fill(1);
-  const caps = Array(numCats).fill(Infinity);
-
-  const indices = shuffle([...Array(numCats).keys()]);
-  const numCaps = Math.max(2, Math.floor(numCats * 0.15));
-  for (const k of indices.slice(0, numCaps)) {
-    caps[k] = 1 + Math.floor(Math.random() * 2);
-  }
-
-  const frontier = [];
-  const removeFrontierAt = (index) => {
-    frontier[index] = frontier[frontier.length - 1];
-    frontier.pop();
-  };
-  for (let k = 0; k < numCats; k++) {
-    const [r, c] = catCoords[k];
-    region[r][c] = k;
-    frontier.push([r, c]);
-  }
-
-  let remaining = rows * cols - numCats;
-
-  while (remaining > 0) {
-    if (frontier.length === 0) break;
-    const i = Math.floor(Math.random() * frontier.length);
-    const [r, c] = frontier[i];
-    const regId = region[r][c];
-
-    if (sizes[regId] >= caps[regId]) {
-      removeFrontierAt(i);
-      continue;
-    }
-
-    // 2D 스크린 이웃 대신 3D 직교 이웃 사용!
-    const open = get3DNeighbors(r, c)
-      .filter(([nr, nc]) => region[nr][nc] === -1);
-
-    if (open.length === 0) {
-      removeFrontierAt(i);
-      continue;
-    }
-
-    const [nr, nc] = open[Math.floor(Math.random() * open.length)];
-    region[nr][nc] = regId;
-    sizes[regId]++;
-    frontier.push([nr, nc]);
-    remaining--;
-  }
-
-  // 아직 안 채워진 셀들을 3D 인근 영역에 흡수
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (region[r][c] === -1) {
-        let assignedNeighbor = -1;
-        const neighbors = get3DNeighbors(r, c);
-        for (const [nr, nc] of neighbors) {
-          if (region[nr][nc] !== -1) {
-            assignedNeighbor = region[nr][nc];
-            break;
-          }
-        }
-        if (assignedNeighbor !== -1) {
-          region[r][c] = assignedNeighbor;
-        } else {
-          region[r][c] = 0;
-        }
-      }
-    }
-  }
-
-  return region;
+  return getOrthogonalNeighbors(N, r, c);
 }
 
 function makeBoard() {
-  const { isDiamond, catCoords } = generateDiamonds3D();
-  return { isDiamond, regions: generateRegions(catCoords) };
+  return createBoard(N);
 }
 
 let nextBoard = null;
@@ -426,6 +341,7 @@ function resetRound() {
   revealedCatsCount = 0;
   locked = false;
   flashing = null;
+  setStatus('새 큐브가 준비됐습니다. 축과 영역의 교차점을 읽어 보세요.');
   hideOverlay();
   bannerEl.classList.add('hidden');
   
@@ -441,8 +357,18 @@ function resetRound() {
 // ---------- 효과음 (Web Audio 합성) ----------
 
 let audioCtx = null;
+let soundEnabled = readPreference(SOUND_KEY, 'on') !== 'off';
+
+function renderSoundPreference() {
+  soundToggleEl.textContent = soundEnabled ? '♪' : '×';
+  soundToggleEl.setAttribute('aria-pressed', String(soundEnabled));
+  soundToggleEl.setAttribute('aria-label', soundEnabled ? '효과음 끄기' : '효과음 켜기');
+}
+
+renderSoundPreference();
 
 function getAudio() {
+  if (!soundEnabled) return null;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return null;
   if (!audioCtx) audioCtx = new AC();
@@ -452,6 +378,20 @@ function getAudio() {
 
 document.addEventListener('mousedown', getAudio, { once: true });
 document.addEventListener('touchstart', getAudio, { once: true });
+
+soundToggleEl.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  writePreference(SOUND_KEY, soundEnabled ? 'on' : 'off');
+  renderSoundPreference();
+  if (soundEnabled) {
+    getAudio();
+    playPop(false);
+    setStatus('효과음을 켰습니다. 고양이 신호를 들어 보세요.');
+  } else {
+    audioCtx?.suspend();
+    setStatus('효과음을 껐습니다. 게임 규칙과 진행은 그대로 유지됩니다.');
+  }
+});
 
 let lastPopAt = 0;
 
@@ -721,6 +661,7 @@ function doubleClick(r, c) {
     cell.mark = 'none';
     playChime();
     revealedCatsCount++;
+    setStatus(`CAT SIGNAL / ${revealedCatsCount}번째 고양이를 찾았습니다.`);
     const changed = autoMarkAround(r, c);
     changed.add(`${r},${c}`);
     renderCells(changed);
@@ -794,6 +735,7 @@ function onMistake(r, c) {
   mistakes++;
   locked = true;
   flashing = { r, c };
+  setStatus(`STONE SIGNAL / 남은 기회 ${MAX_MISTAKES - mistakes}`);
   playWarning();
   renderStatus();
   renderCell(r, c);
@@ -821,6 +763,7 @@ function onLevelClear() {
   locked = true;
   playFanfare();
   winStreak++;
+  setStatus(`CUBE COMPLETE / 고양이 ${getNumCats()}마리를 모두 찾았습니다.`);
   renderStatus();
   saveProgress();
   bannerMsgEl.textContent = `🎉 고양이 ${getNumCats()}마리를 모두 찾았습니다! (${winStreak}연승 중!)`;
@@ -902,6 +845,7 @@ sizeSelect.addEventListener('change', () => {
   prepareToken++;
   nextBoard = null;
   N = nextSize;
+  setStatus(`${N} × ${N} × ${N} 큐브를 생성하고 있습니다.`);
   newBoard();
 });
 
@@ -964,6 +908,9 @@ function renderStatus() {
   streakEl.textContent = `🔥 ${winStreak}`;
   livesEl.textContent =
     '❤️'.repeat(MAX_MISTAKES - mistakes) + '🖤'.repeat(mistakes);
+  catsEl.textContent = `${revealedCatsCount} / ${getNumCats()}`;
+  catsProgressEl.style.width = `${(revealedCatsCount / getNumCats()) * 100}%`;
+  statusCopyEl.textContent = statusMessage;
 }
 
 function renderCell(r, c) {
@@ -1019,12 +966,14 @@ function hideOverlay() {
 
 restartBtnEl.addEventListener('click', () => {
   if (!overlayEl.classList.contains('hidden')) return;
+  setStatus('같은 큐브를 처음 상태로 되돌렸습니다.');
   resetRound();
 });
 
 // 연승 정보 초기화 및 재생성
 resetBtnEl.addEventListener('click', () => {
   winStreak = 0;
+  setStatus('연승을 초기화하고 새 큐브를 준비합니다.');
   newBoard();
 });
 
