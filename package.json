@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/build-static.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "node --check core.js && node --check game.js && node --check site-network.js && npm test"
   },
