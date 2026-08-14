@@ -6,6 +6,7 @@ const outputRoot = path.join(projectRoot, 'dist');
 const runtimeFiles = [
   'index.html',
   'style.css',
+  'subsite-shell.css',
   'game.js',
   'core.js',
   'site-network.js',

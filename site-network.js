@@ -3,7 +3,8 @@ window.DESERTROSE_SITE_NETWORK = {
     { id: 'main', name: 'Everything of My Workspace', label: '모든 작업 공간을 잇는 메인 허브', url: 'https://etienne0112.github.io/MainSite/', repository: 'https://github.com/Etienne0112/MainSite', mark: 'EOW', accent: '#c8f03b' },
     { id: 'blog', name: "DesertRose's Blog", label: '짧게 적어 둔 개발 기록', url: 'https://etienne0112.github.io/DesertRose-s-Blog/', repository: 'https://github.com/Etienne0112/DesertRose-s-Blog', mark: 'DR', accent: '#ed4c34' },
     { id: 'study', name: 'Study Archive', label: '공부하면서 쌓아 둔 긴 문서', url: 'https://etienne0112.github.io/Study/', repository: 'https://github.com/Etienne0112/Study', mark: 'SA', accent: '#2457f5' },
-    { id: 'micro3d', name: 'MicroGame3D', label: '세 축에서 고양이를 찾는 3D 논리 퍼즐', url: 'https://etienne0112.github.io/MicroGame3D/', repository: 'https://github.com/Etienne0112/MicroGame3D', mark: 'M3D', accent: '#b9385a' }
+    { id: 'micro3d', name: 'MicroGame3D', label: '세 축에서 고양이를 찾는 3D 논리 퍼즐', url: 'https://etienne0112.github.io/MicroGame3D/', repository: 'https://github.com/Etienne0112/MicroGame3D', mark: 'M3D', accent: '#c8f03b' },
+    { id: 'template', name: 'My Site Template', label: '새 사이트를 빠르게 시작하는 공통 템플릿', url: 'https://etienne0112.github.io/SiteTemplate/', repository: 'https://github.com/Etienne0112/SiteTemplate', mark: 'TPL', accent: '#171716' }
   ],
   mainSiteId: 'main'
 };
@@ -54,7 +55,7 @@ document.addEventListener('click', (event) => {
   if (menu?.open && !menu.contains(event.target)) menu.removeAttribute('open');
 });
 
-fetch('https://etienne0112.github.io/DesertRose-s-Blog/site-network.json', { cache: 'no-store' })
+fetch('https://etienne0112.github.io/MainSite/site-network.json', { cache: 'no-store' })
   .then((response) => response.ok ? response.json() : Promise.reject(new Error('site network unavailable')))
   .then((network) => {
     if (!Array.isArray(network.sites) || !network.mainSiteId) return;
