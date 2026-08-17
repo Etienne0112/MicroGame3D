@@ -12,7 +12,6 @@ import {
 
 const SAVE_KEY = 'myMeowDoku.save';
 const SOUND_KEY = 'myMeowDoku.sound';
-const THEME_KEY = 'myMeowDoku.theme';
 const MAX_MISTAKES = 3;
 const DBLCLICK_DELAY = 250; // ms: 싱글클릭 확정 대기 시간
 
@@ -185,7 +184,6 @@ const catsEl = document.getElementById('cats-display');
 const catsProgressEl = document.getElementById('cats-progress');
 const statusCopyEl = document.getElementById('status-copy');
 const soundToggleEl = document.getElementById('sound-toggle');
-const themeToggleEl = document.getElementById('theme-toggle');
 
 function readPreference(key, fallback) {
   try {
@@ -201,23 +199,7 @@ function writePreference(key, value) {
   } catch { /* 저장할 수 없는 환경에서는 현재 세션 상태만 유지한다. */ }
 }
 
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  themeToggleEl.textContent = theme === 'dark' ? '◑' : '◐';
-  themeToggleEl.setAttribute('aria-label', theme === 'dark' ? '밝은 테마로 바꾸기' : '어두운 테마로 바꾸기');
-}
-
-const initialTheme = readPreference(
-  THEME_KEY,
-  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-);
-applyTheme(initialTheme);
-
-themeToggleEl.addEventListener('click', () => {
-  const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-  applyTheme(nextTheme);
-  writePreference(THEME_KEY, nextTheme);
-});
+// 화면 테마는 공용 subsite-shell.js가 처리합니다.
 
 function setStatus(message) {
   statusMessage = message;
@@ -243,26 +225,6 @@ modeBtnEl.addEventListener('click', () => {
   setStatus(panMode ? '보드를 끌어 원하는 층으로 이동할 수 있습니다.' : '카드를 클릭하거나 드래그해 발자국을 표시하세요.');
   resetHighlights();
 });
-
-// 층별 보기를 기본값으로 두고, 입체 보기는 공간 관계 확인용으로 제공한다.
-let isometricMode = false;
-
-const viewBtnEl = document.getElementById('view-btn');
-
-viewBtnEl.addEventListener('click', () => {
-  isometricMode = !isometricMode;
-  updateViewMode();
-  setStatus(isometricMode ? '입체 보기에서 층 사이의 공간 관계를 확인하세요.' : '층별 보기에서 각 단서를 차례로 읽어 보세요.');
-});
-
-function updateViewMode() {
-  viewBtnEl.textContent = isometricMode ? '🗂 층별 보기' : '🧊 입체 보기';
-  viewBtnEl.classList.toggle('view-3d-active', isometricMode);
-  viewBtnEl.setAttribute('aria-pressed', String(isometricMode));
-  boardEl.classList.toggle('isometric-3d', isometricMode);
-  boardEl.classList.toggle('layer-view', !isometricMode);
-  resetHighlights();
-}
 
 // ---------- 3D 격자 매핑 공식 ----------
 
@@ -344,8 +306,8 @@ function resetRound() {
   setStatus('새 큐브가 준비됐습니다. 축과 영역의 교차점을 읽어 보세요.');
   hideOverlay();
   bannerEl.classList.add('hidden');
-  
-  updateViewMode();
+
+  resetHighlights();
   computeRegionColors();
   buildBoard();
   renderAll();
