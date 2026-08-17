@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://etienne0112.github.io/MicroGame3D/sitemap.xml

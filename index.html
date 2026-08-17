@@ -29,7 +29,10 @@
           <div class="site-network-popover" id="site-network-popover"></div>
         </details>
         <button class="icon-button" id="sound-toggle" type="button" aria-label="효과음 끄기" aria-pressed="true">♪</button>
-        <button class="icon-button" id="theme-toggle" type="button" aria-label="색상 테마 바꾸기">◐</button>
+        <button class="icon-button" id="theme-toggle" type="button"
+                aria-label="어두운 테마로 바꾸기"
+                data-theme-label-light="어두운 테마로 바꾸기"
+                data-theme-label-dark="밝은 테마로 바꾸기">◑</button>
       </nav>
     </div>
   </header>
@@ -102,11 +105,10 @@
 
           <div class="button-grid">
             <button id="mode-btn" class="control-button accent" type="button" aria-pressed="false">🐾 마킹 모드</button>
-            <button id="view-btn" class="control-button" type="button" aria-pressed="false">🧊 입체 보기</button>
+            <button id="restart-btn" class="control-button subtle" type="button">↺ 이 판 다시</button>
           </div>
 
           <div class="button-grid secondary-actions">
-            <button id="restart-btn" class="control-button subtle" type="button">↺ 이 판 다시</button>
             <button id="reset-btn" class="control-button ghost" type="button">연승 초기화</button>
           </div>
         </section>
@@ -132,11 +134,14 @@
       </aside>
     </main>
 
-    <footer class="site-footer">
-      <p><strong>MICROGAME3D / CAT LOGIC CUBE</strong><br>동명대학교 게임학부 강영민 (원 개발자) · 이주현 (포크)</p>
-      <div><a href="https://etienne0112.github.io/MainSite/">MAIN SITE</a> · <a href="https://github.com/Etienne0112/MicroGame3D" target="_blank" rel="noopener">THIS REPOSITORY ↗</a> · <a href="#top">TOP ↑</a></div>
-    </footer>
   </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p><strong>MICROGAME3D / CAT LOGIC CUBE</strong><br>동명대학교 게임학부 강영민 (원 개발자) · 이주현 (포크)</p>
+      <div><span id="site-network-footer"></span><a href="#top">TOP ↑</a></div>
+    </div>
+  </footer>
 
   <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
     <div class="overlay-box">
@@ -148,7 +153,7 @@
     </div>
   </div>
 
-  <script src="site-network.js" defer></script>
+  <script src="subsite-shell.js" defer></script>
   <script src="game.js" type="module"></script>
 </body>
 </html>
