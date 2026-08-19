@@ -40,6 +40,9 @@ const REQUIRED_CSS_SELECTORS = [
 const REQUIRED_JS_FRAGMENTS = [
   "const THEME_KEY = 'desertrose.theme'",
   'global.DesertRoseShell',
+  // 각 사이트 app.js가 이스케이프와 두 자리 번호 매기기를 셸에서 가져다 쓰므로 반드시 노출돼야 합니다.
+  '    escapeHTML,',
+  '    pad2,',
   'DESERTROSE_NORMALIZE_SITE_NETWORK',
   'function normalizeSiteNetwork',
   'function renderNetwork',

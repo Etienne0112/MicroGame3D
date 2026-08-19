@@ -304,6 +304,7 @@
   global.DesertRoseShell = Object.freeze({
     contract: SHELL_CONTRACT,
     escapeHTML,
+    pad2,
     normalize: normalizeSiteNetwork,
     otherSites,
     directLinks,
